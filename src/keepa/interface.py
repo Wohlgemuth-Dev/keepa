@@ -6,7 +6,7 @@ import json
 import logging
 import time
 from enum import Enum
-from typing import List
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import aiohttp
 import numpy as np
