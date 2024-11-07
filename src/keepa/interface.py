@@ -5,6 +5,7 @@ import datetime
 import json
 import logging
 import time
+from enum import Enum
 from typing import List
 
 import aiohttp
