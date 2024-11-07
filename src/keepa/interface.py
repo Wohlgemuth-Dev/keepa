@@ -340,6 +340,43 @@ def format_items(items):
         return np.asarray([items])
 
 
+class Domain(Enum):
+    """Enumeration for Amazon domain regions.
+
+    Examples
+    --------
+    >>> import keepa
+    >>> keepa.Domain.US
+    <Domain.US: 'US'>
+
+    """
+
+    RESERVED = "RESERVED"
+    US = "US"
+    GB = "GB"
+    DE = "DE"
+    FR = "FR"
+    JP = "JP"
+    CA = "CA"
+    RESERVED2 = "RESERVED2"
+    IT = "IT"
+    ES = "ES"
+    IN = "IN"
+    MX = "MX"
+    BR = "BR"
+
+
+def _domain_to_dcode(domain: Union[str, Domain]) -> int:
+    """Convert a domain to a domain code."""
+    if isinstance(domain, Domain):
+        domain_str = domain.value
+    else:
+        domain_str = domain
+
+    if domain not in DCODES:
+        raise ValueError(f"Invalid domain code {domain}. Should be one of the following:\n{DCODES}")
+    return DCODES.index(domain_str)
+
 class Keepa:
     r"""Support a synchronous Python interface to keepa server.
 
