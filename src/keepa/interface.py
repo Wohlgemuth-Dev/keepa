@@ -2604,20 +2604,6 @@ class Keepa:
 
         return self._request("deal", payload, wait=wait)["deals"]
 
-    async def fetch_url(self, request_type, payload, timeout):
-        result_dict = {}
-        try:
-            result_dict['response'] = requests.get(
-                f"https://api.keepa.com/{request_type}/?code-limit=10",
-                payload,
-                timeout=timeout,
-            )
-        except requests.exceptions.Timeout:
-            result_dict['error'] = "REQUEST_TIMED_OUT"
-        except requests.exceptions.RequestException as e:
-            result_dict['error'] = str(e)
-        return result_dict
-
     def _request(self, request_type, payload, wait=True, raw_response=False):
         """Query keepa api server.
 
@@ -2628,15 +2614,11 @@ class Keepa:
             self.wait_for_tokens()
 
         while True:
-            try:
-                result_dict = asyncio.get_event_loop().run_until_complete(asyncio.wait_for(self.fetch_url(request_type, payload, self._timeout), timeout=self._timeout))
-            except asyncio.TimeoutError:
-                raise RuntimeError("API didnt respond after 15 seconds, terminating request.")
-
-            if 'error' in result_dict:
-                raise RuntimeError(result_dict['error'])
-            else:
-                raw = result_dict['response']
+            raw = requests.get(
+                f"https://api.keepa.com/{request_type}/?",
+                payload,
+                timeout=self._timeout,
+            )
 
             status_code = str(raw.status_code)
             if status_code != "200":
