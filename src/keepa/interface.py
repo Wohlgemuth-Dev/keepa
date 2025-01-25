@@ -2618,7 +2618,7 @@ class Keepa:
             result_dict['error'] = str(e)
         return result_dict
 
-    async def _request(self, request_type, payload, wait=True, raw_response=False):
+    def _request(self, request_type, payload, wait=True, raw_response=False):
         """Query keepa api server.
 
         Parses raw response from keepa into a json format.  Handles
@@ -2629,7 +2629,7 @@ class Keepa:
 
         while True:
             try:
-                result_dict = await asyncio.wait_for(self.fetch_url(request_type, payload, self._timeout), timeout=self._timeout)
+                result_dict = asyncio.get_event_loop().run_until_complete(asyncio.wait_for(self.fetch_url(request_type, payload, self._timeout), timeout=self._timeout))
             except asyncio.TimeoutError:
                 raise RuntimeError("API didnt respond after 15 seconds, terminating request.")
 
