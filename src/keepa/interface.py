@@ -12,12 +12,11 @@ import aiohttp
 import numpy as np
 import pandas as pd
 import requests
+from google.oauth2.id_token import fetch_id_token
+from pandas.core.computation.common import result_type_many
 from tqdm import tqdm
 
 from keepa.query_keys import DEAL_REQUEST_KEYS, PRODUCT_REQUEST_KEYS
-
-# needed to terminate api requests after a certain time, if the request takes too long or gets stuck
-from multiprocessing import Process, Manager
 
 
 def is_documented_by(original):
@@ -2607,7 +2606,8 @@ class Keepa:
 
         return self._request("deal", payload, wait=wait)["deals"]
 
-    def fetch_url(self, request_type, payload, timeout, result_dict):
+    async def fetch_url(self, request_type, payload, timeout):
+        result_dict = {}
         try:
             result_dict['response'] = requests.get(
                 f"https://api.keepa.com/{request_type}/?code-limit=10",
@@ -2618,8 +2618,9 @@ class Keepa:
             result_dict['error'] = "REQUEST_TIMED_OUT"
         except requests.exceptions.RequestException as e:
             result_dict['error'] = str(e)
+        return result_dict
 
-    def _request(self, request_type, payload, wait=True, raw_response=False):
+    async def _request(self, request_type, payload, wait=True, raw_response=False):
         """Query keepa api server.
 
         Parses raw response from keepa into a json format.  Handles
@@ -2629,32 +2630,16 @@ class Keepa:
             self.wait_for_tokens()
 
         while True:
-            # old code
-            # raw = requests.get(
-            #     f"https://api.keepa.com/{request_type}/?",
-            #     payload,
-            #     timeout=timeout,
-            # )
-            # end of old code
-            
-            # new code with multiprocessing to ensure timeout after 15 seconds
-            with Manager() as manager:
-                # whats this error: not enough values to unpack (expected 3, got 2)
-                result_dict = manager.dict()
-                p = Process(target=self.fetch_url, args=(request_type, payload, self._timeout, result_dict))
-                p.start()
-                p.join(15)  # Wait for 15 seconds or until the process finishes
+            try:
+                result_dict = await asyncio.wait_for(self.fetch_url(request_type, payload, self._timeout), timeout=self._timeout)
+            except asyncio.TimeoutError:
+                raise RuntimeError("API didnt respond after 15 seconds, terminating request.")
 
-                if p.is_alive():  # If process is still running after 15 seconds
-                    p.terminate()
-                    p.join()  # Ensure process has finished cleanup
-                    raise RuntimeError("API didnt respond after 15 seconds, terminating request.")
+            if 'error' in result_dict:
+                raise RuntimeError(result_dict['error'])
+            else:
+                raw = result_dict['response']
 
-                if 'error' in result_dict:
-                    raise RuntimeError(result_dict['error'])
-                else:
-                    raw = result_dict['response']
-            # end of new code
             status_code = str(raw.status_code)
             if status_code != "200":
                 if status_code in SCODES:
