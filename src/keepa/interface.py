@@ -12,8 +12,6 @@ import aiohttp
 import numpy as np
 import pandas as pd
 import requests
-from google.oauth2.id_token import fetch_id_token
-from pandas.core.computation.common import result_type_many
 from tqdm import tqdm
 
 from keepa.query_keys import DEAL_REQUEST_KEYS, PRODUCT_REQUEST_KEYS
